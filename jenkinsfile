@@ -7,6 +7,14 @@ pipeline {
         VENV_DIR     = "venv"
     }
 
+   stage('Install Python Venv') {
+    steps {
+        sh '''
+        sudo apt-get update
+        sudo apt-get install python3-venv -y
+        '''
+    }
+}
     stages {
 
         stage('Checkout') {
