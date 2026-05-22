@@ -7,20 +7,21 @@ pipeline {
         VENV_DIR     = "venv"
     }
 
-   stage('Install Python Venv') {
-    steps {
-        sh '''
-        sudo apt-get update
-        sudo apt-get install python3-venv -y
-        '''
-    }
-}
     stages {
 
         stage('Checkout') {
             steps {
                 echo 'Checking out source code...'
                 checkout scm
+            }
+        }
+
+        stage('Install Python Venv') {
+            steps {
+                sh '''
+                sudo apt-get update
+                sudo apt-get install python3-venv -y
+                '''
             }
         }
 
@@ -32,6 +33,15 @@ pipeline {
                     . ${VENV_DIR}/bin/activate
                     pip install --upgrade pip
                     pip install -r requirements.txt
+                """
+            }
+        }
+
+        stage('Install Build Package') {
+            steps {
+                sh """
+                    . ${VENV_DIR}/bin/activate
+                    pip install build
                 """
             }
         }
@@ -59,7 +69,7 @@ pipeline {
             steps {
                 sh '''
                 sudo wget -O sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-                sudo apt install unzip -y
+                sudo apt-get install unzip -y
                 sudo unzip -o -q sonar-scanner.zip
                 sudo rm -rf /opt/sonar-scanner
                 sudo mv --force sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
@@ -83,6 +93,7 @@ pipeline {
     }
 
     post {
+
         success {
             echo 'Pipeline completed successfully!'
         }
