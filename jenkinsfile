@@ -82,5 +82,4 @@ sh '/opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=anuragow_myproject -
 }
     }
 }
-    }
 }
