@@ -11,14 +11,14 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                echo '📥 Checking out source code...'
+                echo 'Checking out source code...'
                 checkout scm
             }
         }
 
         stage('Setup Python Environment') {
             steps {
-                echo '🐍 Creating virtual environment...'
+                echo 'Creating virtual environment...'
                 sh """
                     ${PYTHON} -m venv ${VENV_DIR}
                     . ${VENV_DIR}/bin/activate
@@ -28,10 +28,9 @@ pipeline {
             }
         }
 
-
         stage('Build WHL Package') {
             steps {
-                echo '📦 Building wheel package...'
+                echo 'Building wheel package...'
                 sh """
                     . ${VENV_DIR}/bin/activate
                     python -m build
@@ -41,45 +40,52 @@ pipeline {
 
         stage('Archive Artifacts') {
             steps {
-                echo '🗄️ Archiving dist artifacts...'
+                echo 'Archiving dist artifacts...'
                 archiveArtifacts artifacts: 'dist/*.whl, dist/*.tar.gz',
                                  fingerprint: true,
                                  allowEmptyArchive: false
             }
         }
 
+        stage('Install SonarQube CLI') {
+            steps {
+                sh '''
+                sudo wget -O sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+                sudo apt install unzip -y
+                sudo unzip -o -q sonar-scanner.zip
+                sudo rm -rf /opt/sonar-scanner
+                sudo mv --force sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
+                sudo chmod +x /opt/sonar-scanner/bin/sonar-scanner
+                '''
+            }
         }
+
+        stage('Analyzing Code Quality') {
+            steps {
+                sh '''
+                /opt/sonar-scanner/bin/sonar-scanner \
+                -Dsonar.projectKey=anuragow_myproject \
+                -Dsonar.organization=anuragow \
+                -Dsonar.sources=my_package \
+                -Dsonar.host.url=https://sonarcloud.io \
+                -Dsonar.login=f02c29b68363fa5a3d16a4d05add7b8974731123
+                '''
+            }
+        }
+    }
 
     post {
         success {
-            echo '✅ Pipeline completed successfully!'
+            echo 'Pipeline completed successfully!'
         }
+
         failure {
-            echo '❌ Pipeline failed. Check logs above.'
+            echo 'Pipeline failed. Check logs above.'
         }
+
         always {
-            echo '🧹 Cleaning up workspace...'
+            echo 'Cleaning workspace...'
             cleanWs()
         }
-stage('Install sonarqube cli') {
-steps {
-// Step to install SonarQube CLI
-sh 'sudo wget -O sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip'
-sh 'sudo apt install unzip -y'
-sh 'sudo unzip -o -q sonar-scanner.zip'
-sh 'sudo rm -rf /opt/sonar-scanner'
-sh 'sudo mv --force sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner'
-sh 'sudo sh -c \'echo "#/bin/bash \nexport PATH=\\\"$PATH:/opt/sonar-scanner/bin\\\"" >/etc/profile.d/sonar-scanner.sh\''
-sh 'sudo chmod +x /opt/sonar-scanner/bin/sonar-scanner'
-sh '. /etc/profile.d/sonar-scanner.sh'
-}
-}
-stage('Analyzing Code Quality') {
-steps {
-// Step to analyze code quality with SonarQube
-sh '/opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=anuragow_myproject -Dsonar.organization=anuragow -Dsonar.qualitygate.wait=false -Dsonar.qualitygate.timeout=300 -Dsonar.sources=my_package -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=f02c29b68363fa5a3d16a4d05add7b8974731123'
-}
-}
     }
-}
 }
